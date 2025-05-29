@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail } from '../lib/emailjs';
+import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import { createPaymentIntent } from '../lib/stripe';
 import StripeCheckout from '../components/payment/StripeCheckout';
 
@@ -37,7 +37,7 @@ const OceanFreightBooking: React.FC = () => {
       });
 
       // Send confirmation email to customer
-      await sendCustomerConfirmationEmail('customer_confirmation_template', {
+      await sendCustomerConfirmationEmail('template_qogh09d', {
         ...data,
         service_type: isBooking ? 'Ocean Freight Booking' : 'Ocean Freight Quote'
       });

@@ -3,7 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail } from '../lib/emailjs';
+import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import { createPaymentIntent } from '../lib/stripe';
 import StripeCheckout from '../components/payment/StripeCheckout';
 
@@ -64,7 +64,7 @@ const InlandFreightBooking: React.FC = () => {
       await sendEmail('template_qogh09d', emailData);
 
       // Send confirmation email to customer
-      await sendCustomerConfirmationEmail('customer_confirmation_template', emailData);
+      await sendCustomerConfirmationEmail('template_ene1r37', emailData);
 
       if (isBooking) {
         const bookingRef = `INL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

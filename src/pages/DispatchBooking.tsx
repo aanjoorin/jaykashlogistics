@@ -3,7 +3,8 @@ import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail } from '../lib/emailjs';
+import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
+// import { sendEmail } from '../lib/emailjs';
 import PaymentPage from '../components/payment/PaymentPage';
 
 const DispatchBooking: React.FC = () => {

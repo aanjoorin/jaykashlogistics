@@ -54,7 +54,7 @@ const InlandFreightQuote: React.FC = () => {
       await sendEmail('template_qogh09d', emailData);
       
       // Send confirmation email to customer using the same data structure
-      await sendCustomerConfirmationEmail('customer_confirmation_template', emailData);
+      await sendCustomerConfirmationEmail('template_ene1r37', emailData);
       
       setIsSubmitted(true);
       window.scrollTo(0, 0);

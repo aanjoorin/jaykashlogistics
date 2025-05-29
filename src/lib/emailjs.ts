@@ -153,10 +153,11 @@ export const sendCustomerConfirmationEmail = async (templateId: string, data: an
     
     const emailData = {
       to_name: data.shipper_info.name,
-      to_email: data.shipper_info.email,
       from_name: 'JayKash Logistics',
       message: messageContent,
-      subject: `Your Quote Request - ${data.service_type}`
+      subject: `Your Quote Request - ${data.service_type}`,
+      reply_to: data.shipper_info.email,
+      to_email: data.shipper_info.email,
     };
     
     const response = await emailjs.send(

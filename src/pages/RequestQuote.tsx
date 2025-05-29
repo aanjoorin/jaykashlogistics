@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { carriers, originPorts } from '../data/services';
+import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
 
 interface QuoteFormData {
   firstName: string;
@@ -110,7 +111,7 @@ const RequestQuote: React.FC = () => {
       });
 
       // Send confirmation email to customer
-      await sendCustomerConfirmationEmail('customer_confirmation_template', {
+      await sendCustomerConfirmationEmail('template_ene1r37', {
         service_type: data.serviceType,
         shipper_info: {
           name: `${data.firstName} ${data.lastName}`,
