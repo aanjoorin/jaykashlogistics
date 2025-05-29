@@ -59,14 +59,21 @@ const OceanFreightQuote: React.FC = () => {
       // The existing emailData object already has the right structure
       await sendEmail('template_qogh09d', emailData);
       
-      // Send confirmation email to customer using the same data structure
-      await sendCustomerConfirmationEmail('template_qogh09d', emailData);
+      // Send confirmation email to customer using a DIFFERENT template ID
+      
+      // With this
+      await sendCustomerConfirmationEmail(import.meta.env.VITE_EMAILJS_BOOKING_TEMPLATE_ID, emailData);
       
       setIsSubmitted(true);
       window.scrollTo(0, 0);
     } catch (error) {
       console.error('Error submitting quote:', error);
-      alert('Failed to submit quote request. Please try again.');
+      // More specific error message
+      if (error instanceof Error) {
+        alert(`Failed to submit quote request: ${error.message}`);
+      } else {
+        alert('Failed to submit quote request. Please try again.');
+      }
     }
   };
 
