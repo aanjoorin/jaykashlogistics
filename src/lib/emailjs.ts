@@ -108,3 +108,66 @@ export const sendEmail = async (templateId: string, data: any) => {
     throw error;
   }
 };
+
+// Function to send confirmation email to customer
+export const sendCustomerConfirmationEmail = async (templateId: string, data: any) => {
+  try {
+    // Format the message content for customer
+    let messageContent = '';
+    
+    // Add thank you message
+    messageContent += `Dear ${data.shipper_info.name},\n\n`;
+    messageContent += `Thank you for requesting a quote for our ${data.service_type} service. We have received your request and our team will review it shortly.\n\n`;
+    messageContent += `Here's a summary of the information you provided:\n\n`;
+    
+    // Add service type header
+    messageContent += `Service Type: ${data.service_type}\n\n`;
+    
+    // Shipper Information
+    messageContent += 'Your Information:\n';
+    messageContent += `- Name: ${data.shipper_info.name}\n`;
+    messageContent += `- Email: ${data.shipper_info.email}\n`;
+    messageContent += `- Phone: ${data.shipper_info.phone}\n\n`;
+    
+    // Shipline Information (for Ocean Freight)
+    if (data.shipline_info) {
+      messageContent += 'Shipline Information:\n';
+      messageContent += `- Loading Port: ${data.shipline_info.loading_port}\n`;
+      messageContent += `- Discharge Port: ${data.shipline_info.discharge_port}\n`;
+      messageContent += `- Carrier: ${data.shipline_info.carrier}\n\n`;
+    }
+    
+    // Vehicle Information
+    if (data.vehicle_info) {
+      messageContent += 'Vehicle Information:\n';
+      messageContent += `- Year: ${data.vehicle_info.year}\n`;
+      messageContent += `- Make: ${data.vehicle_info.make}\n`;
+      messageContent += `- Model: ${data.vehicle_info.model}\n`;
+      messageContent += `- VIN: ${data.vehicle_info.vin}\n\n`;
+    }
+    
+    // Closing message
+    messageContent += 'Our team will contact you shortly with a quote. If you have any questions, please feel free to contact us.\n\n';
+    messageContent += 'Thank you for choosing JayKash Logistics.\n\n';
+    messageContent += 'Best regards,\nJayKash Logistics Team';
+    
+    const emailData = {
+      to_name: data.shipper_info.name,
+      to_email: data.shipper_info.email,
+      from_name: 'JayKash Logistics',
+      message: messageContent,
+      subject: `Your Quote Request - ${data.service_type}`
+    };
+    
+    const response = await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      templateId,
+      emailData
+    );
+    
+    return response;
+  } catch (error) {
+    console.error('EmailJS customer confirmation error:', error);
+    throw error;
+  }
+};

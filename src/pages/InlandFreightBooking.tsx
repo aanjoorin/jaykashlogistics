@@ -60,7 +60,11 @@ const InlandFreightBooking: React.FC = () => {
         }
       };
 
+      // Send email to admin
       await sendEmail('template_qogh09d', emailData);
+
+      // Send confirmation email to customer
+      await sendCustomerConfirmationEmail('customer_confirmation_template', emailData);
 
       if (isBooking) {
         const bookingRef = `INL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -79,11 +83,29 @@ const InlandFreightBooking: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
+      // Send confirmation to admin
       await sendEmail('template_ene1r37', {
         to_name: `${formData.firstName} ${formData.lastName}`,
         service_type: 'Inland Freight',
         booking_details: `From ${formData.pickupAddress} to ${formData.deliveryAddress}`,
         to_email: formData.email
+      });
+      
+      // Send payment confirmation to customer
+      await sendCustomerConfirmationEmail('payment_confirmation_template', {
+        shipper_info: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone || ''
+        },
+        service_type: 'Inland Freight',
+        pickup_info: {
+          address: formData.pickupAddress
+        },
+        delivery_info: {
+          address: formData.deliveryAddress
+        },
+        payment_status: 'completed'
       });
       
       alert('Booking confirmed! Check your email for confirmation details.');

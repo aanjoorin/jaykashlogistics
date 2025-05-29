@@ -109,6 +109,22 @@ const RequestQuote: React.FC = () => {
         `
       });
 
+      // Send confirmation email to customer
+      await sendCustomerConfirmationEmail('customer_confirmation_template', {
+        service_type: data.serviceType,
+        shipper_info: {
+          name: `${data.firstName} ${data.lastName}`,
+          email: data.email,
+          phone: data.phone
+        },
+        vehicle_info: {
+          year: data.vehicleYear,
+          make: data.vehicleMake,
+          model: data.vehicleModel,
+          vin: data.vinNumber
+        }
+      });
+
       setIsSubmitted(true);
       reset();
       window.scrollTo({ top: 0, behavior: 'smooth' });

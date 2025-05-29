@@ -30,8 +30,14 @@ const OceanFreightBooking: React.FC = () => {
       // Store form data
       setFormData(data);
 
-      // Send email notification
+      // Send email notification to admin
       await sendEmail('ocean_freight_template', {
+        ...data,
+        service_type: isBooking ? 'Ocean Freight Booking' : 'Ocean Freight Quote'
+      });
+
+      // Send confirmation email to customer
+      await sendCustomerConfirmationEmail('customer_confirmation_template', {
         ...data,
         service_type: isBooking ? 'Ocean Freight Booking' : 'Ocean Freight Quote'
       });
@@ -57,8 +63,14 @@ const OceanFreightBooking: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
-      // Send confirmation email
+      // Send confirmation email to admin
       await sendEmail('booking_confirmation_template', {
+        ...formData,
+        payment_status: 'completed'
+      });
+      
+      // Send payment confirmation to customer
+      await sendCustomerConfirmationEmail('payment_confirmation_template', {
         ...formData,
         payment_status: 'completed'
       });
