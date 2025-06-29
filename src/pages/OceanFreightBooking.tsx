@@ -3,9 +3,14 @@ import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
+import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import { createPaymentIntent } from '../lib/stripe';
 import StripeCheckout from '../components/payment/StripeCheckout';
+
+const OCEAN_FREIGHT_TEMPLATE = 'ocean_freight_template';
+const CUSTOMER_QUOTE_TEMPLATE = 'template_qogh09d';
+const BOOKING_CONFIRMATION_TEMPLATE = 'booking_confirmation_template';
+const PAYMENT_CONFIRMATION_TEMPLATE = 'payment_confirmation_template';
 
 const OceanFreightBooking: React.FC = () => {
   const location = useLocation();
@@ -14,6 +19,7 @@ const OceanFreightBooking: React.FC = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [clientSecret, setClientSecret] = useState<string>('');
   const [formData, setFormData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     document.title = isBooking ? 'Ocean Freight Booking - Jaykash' : 'Ocean Freight Quote - Jaykash';
@@ -25,60 +31,49 @@ const OceanFreightBooking: React.FC = () => {
     threshold: 0.1,
   });
 
+  // Handles both quote and booking form submissions
   const handleSubmit = async (data: any) => {
     try {
-      // Store form data
       setFormData(data);
-
-      // Send email notification to admin
-      await sendEmail('ocean_freight_template', {
-        ...data,
-        service_type: isBooking ? 'Ocean Freight Booking' : 'Ocean Freight Quote'
-      });
-
-      // Send confirmation email to customer
-      await sendCustomerConfirmationEmail('template_qogh09d', {
-        ...data,
-        service_type: isBooking ? 'Ocean Freight Booking' : 'Ocean Freight Quote'
-      });
 
       if (isBooking) {
         // Generate a unique booking reference
         const bookingRef = `OCN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // For bookings, create payment intent and show payment form
+        if (!data.email) {
+          alert('Email is required for booking.');
+          return;
+        }
+        setLoading(true);
+        // Create payment intent and show payment form
         const secret = await createPaymentIntent(1000, bookingRef, data.email);
         setClientSecret(secret);
         setShowPayment(true);
+        setLoading(false);
       } else {
-        // For quotes, show success message
+        // For quotes, send emails immediately
+        await sendEmailToAdmin({ ...data, service_type: 'Ocean Freight Quote' });
+        await sendCustomerConfirmationEmail({ ...data, service_type: 'Ocean Freight Quote' });
         alert('Quote request submitted successfully! We will contact you shortly.');
         navigate('/');
       }
     } catch (error) {
+      setLoading(false);
       console.error('Error submitting request:', error);
       alert('An error occurred. Please try again.');
     }
   };
 
+  // Called after successful payment
   const handlePaymentSuccess = async () => {
     try {
-      // Send confirmation email to admin
-      await sendEmail('booking_confirmation_template', {
-        ...formData,
-        payment_status: 'completed'
-      });
-      
-      // Send payment confirmation to customer
-      await sendCustomerConfirmationEmail('payment_confirmation_template', {
-        ...formData,
-        payment_status: 'completed'
-      });
-      
+      await sendEmailToAdmin({ ...formData, service_type: 'Ocean Freight Booking', payment_status: 'completed' });
+      await sendCustomerConfirmationEmail({ ...formData, service_type: 'Ocean Freight Booking', payment_status: 'completed' });
       alert('Booking confirmed! Check your email for confirmation details.');
       navigate('/');
     } catch (error) {
       console.error('Error processing success:', error);
+      alert('Booking confirmed, but failed to send confirmation email.');
+      navigate('/');
     }
   };
 
@@ -119,7 +114,7 @@ const OceanFreightBooking: React.FC = () => {
                 />
               </div>
             ) : (
-              <RoroRequestForm onSubmit={handleSubmit} />
+              <RoroRequestForm onSubmit={handleSubmit} loading={loading} />
             )}
           </div>
         </div>

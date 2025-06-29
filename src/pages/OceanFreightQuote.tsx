@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
-import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
+import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
 
 const OceanFreightQuote: React.FC = () => {
@@ -57,12 +57,8 @@ const OceanFreightQuote: React.FC = () => {
       };
 
       // The existing emailData object already has the right structure
-      await sendEmail('template_qogh09d', emailData);
-      
-      // Send confirmation email to customer using a DIFFERENT template ID
-      
-      // With this
-      await sendCustomerConfirmationEmail(import.meta.env.VITE_EMAILJS_BOOKING_TEMPLATE_ID, emailData);
+      await sendEmailToAdmin(emailData);
+      await sendCustomerConfirmationEmail(emailData);
       
       setIsSubmitted(true);
       window.scrollTo(0, 0);

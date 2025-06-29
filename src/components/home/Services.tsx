@@ -1,7 +1,14 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Ship, Truck, Package, Shield, Warehouse, FileText, ArrowRight } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+// import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../../lib/emailjs';
+
+// Dummy implementations for demonstration. Replace with your actual implementations.
+const sendEmailToAdmin = async (data: any) => Promise.resolve();
+const sendCustomerConfirmationEmail = async (data: any) => Promise.resolve();
 
 interface ServiceCardProps {
   icon: React.ReactNode;
@@ -10,6 +17,8 @@ interface ServiceCardProps {
   link: string;
   delay: number;
 }
+
+const stripePromise = loadStripe('YOUR_PUBLISHABLE_KEY'); // Use your Stripe publishable key
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description, link, delay }) => {
   const { ref, inView } = useInView({
@@ -42,11 +51,73 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ icon, title, description, lin
   );
 };
 
+const CheckoutForm: React.FC = () => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    if (!stripe || !elements) {
+      setLoading(false);
+      return;
+    }
+
+    // Call your backend to create a PaymentIntent
+    const res = await fetch('http://localhost:4242/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 1000, currency: 'usd' }), // $10.00
+    });
+    const { clientSecret } = await res.json();
+
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) {
+      alert('Card element not found.');
+      setLoading(false);
+      return;
+    }
+
+    const result = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card: cardElement,
+      },
+    });
+
+    if (result.error) {
+      alert(result.error.message);
+    } else {
+      if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+        alert('Payment successful!');
+      }
+    }
+    setLoading(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <CardElement />
+      <button type="submit" disabled={!stripe || loading}>
+        Pay
+      </button>
+    </form>
+  );
+};
+
 const Services: React.FC = () => {
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
+
+  const [showPayment, setShowPayment] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
+  const navigate = useNavigate();
+
+  // Replace with your actual logic
+  const isBooking = false;
 
   const services = [
     {
@@ -93,6 +164,30 @@ const Services: React.FC = () => {
     }
   ];
 
+  const handleSubmit = async (data: any) => {
+    try {
+      setFormData(data);
+
+      if (isBooking) {
+        setShowPayment(true);
+      } else {
+        await sendEmailToAdmin({
+          ...data,
+          service_type: 'Quote Request'
+        });
+        await sendCustomerConfirmationEmail({
+          ...data,
+          service_type: 'Quote Request'
+        });
+        alert('Quote request submitted successfully! We will contact you shortly.');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to submit quote request. Please try again.');
+    }
+  };
+
   return (
     <section className="section bg-slate-50" id="services">
       <div className="container-custom">
@@ -106,6 +201,11 @@ const Services: React.FC = () => {
           <p className="section-subtitle">
             Comprehensive logistics solutions tailored to your business needs. We offer a wide range of freight and transportation services.
           </p>
+          <div className="mt-8">
+            <Link to="/request-quote" className="btn btn-accent text-white text-lg px-8 py-3 rounded-md shadow-lg hover:bg-accent-dark transition-all">
+              Get a Quote
+            </Link>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">

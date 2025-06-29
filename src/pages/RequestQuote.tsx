@@ -4,7 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { carriers, originPorts } from '../data/services';
-import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
+import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../lib/emailjs';
 
 interface QuoteFormData {
   firstName: string;
@@ -39,16 +39,16 @@ const RequestQuote: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
-  
+
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm<QuoteFormData>();
-  
+
   const serviceType = watch('serviceType');
   const weight = watch('weight');
   const origin = watch('origin');
   const destination = watch('destination');
   const pickupLocationType = watch('pickupLocationType');
   const deliveryLocationType = watch('deliveryLocationType');
-  
+
   useEffect(() => {
     document.title = 'Request a Quote - Jaykash Integrated Services LLC';
     window.scrollTo(0, 0);
@@ -58,14 +58,14 @@ const RequestQuote: React.FC = () => {
     // Simple price estimation logic
     if (serviceType && weight && origin && destination) {
       let basePrice = 0;
-      
+
       if (serviceType === 'ocean') basePrice = 1000;
       else if (serviceType === 'inland') basePrice = 500;
       else if (serviceType === 'express') basePrice = 1500;
-      
+
       const weightNum = parseFloat(weight) || 0;
       const weightFactor = weightNum > 1000 ? 1.5 : weightNum > 500 ? 1.3 : 1;
-      
+
       const calculatedPrice = basePrice * weightFactor;
       setEstimatedPrice(Math.round(calculatedPrice));
     } else {
@@ -81,9 +81,9 @@ const RequestQuote: React.FC = () => {
   const onSubmit = async (data: QuoteFormData) => {
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
-      await sendEmail('template_qogh09d', {
+      await sendEmailToAdmin({
         to_name: 'Admin',
         from_name: `${data.firstName} ${data.lastName}`,
         from_email: data.email,
@@ -111,7 +111,7 @@ const RequestQuote: React.FC = () => {
       });
 
       // Send confirmation email to customer
-      await sendCustomerConfirmationEmail('template_ene1r37', {
+      await sendCustomerConfirmationEmail({
         service_type: data.serviceType,
         shipper_info: {
           name: `${data.firstName} ${data.lastName}`,

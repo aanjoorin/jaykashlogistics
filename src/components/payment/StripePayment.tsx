@@ -28,11 +28,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ quoteRef, onSuccess, onError 
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/booking/confirmation`,
-          payment_intent_data: {
-            metadata: {
-              quote_reference: quoteRef
-            }
-          }
         }
       });
 

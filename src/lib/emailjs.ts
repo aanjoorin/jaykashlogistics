@@ -1,9 +1,9 @@
-import emailjs from '@emailjs/browser';
+import emailjs from 'emailjs-com';
 
 // Initialize with public key
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
 
-export const sendEmail = async (templateId: string, data: any) => {
+export async function sendEmailToAdmin(data: any) {
   try {
     // Format the message content
     let messageContent = '';
@@ -98,8 +98,9 @@ export const sendEmail = async (templateId: string, data: any) => {
 
     const response = await emailjs.send(
       import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      templateId,
-      emailData
+      import.meta.env.VITE_EMAILJS_ADMIN_TEMPLATE_ID,
+      emailData,
+      import.meta.env.VITE_EMAILJS_USER_ID
     );
 
     return response;
@@ -110,7 +111,7 @@ export const sendEmail = async (templateId: string, data: any) => {
 };
 
 // Function to send confirmation email to customer
-export const sendCustomerConfirmationEmail = async (templateId: string, data: any) => {
+export async function sendCustomerConfirmationEmail(data: any) {
   try {
     // Format the message content for customer with the SAME DETAILS as admin
     let messageContent = '';
@@ -235,8 +236,9 @@ export const sendCustomerConfirmationEmail = async (templateId: string, data: an
     
     const response = await emailjs.send(
       import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      templateId,
-      emailData
+      import.meta.env.VITE_EMAILJS_CUSTOMER_TEMPLATE_ID,
+      emailData,
+      import.meta.env.VITE_EMAILJS_USER_ID
     );
     
     return response;
@@ -245,3 +247,21 @@ export const sendCustomerConfirmationEmail = async (templateId: string, data: an
     throw error;
   }
 };
+
+// inside onSubmit
+try {
+  await sendEmailToAdmin({
+    to_name: 'Admin',
+    from_name: `${data.firstName} ${data.lastName}`,
+    from_email: data.email,
+    subject: 'New Quote Request',
+    message: `...`
+  });
+  // ...rest of your code...
+} catch (err: any) {
+  console.error('Error submitting quote:', err);
+  setError('Failed to submit quote request. Please try again or contact us directly.');
+  alert('Failed to submit quote request. ' + (err?.text || err?.message || 'Please try again.'));
+} finally {
+  setIsSubmitting(false);
+}

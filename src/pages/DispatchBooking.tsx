@@ -3,8 +3,7 @@ import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
-// import { sendEmail } from '../lib/emailjs';
+import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import PaymentPage from '../components/payment/PaymentPage';
 
 const DispatchBooking: React.FC = () => {
@@ -28,46 +27,15 @@ const DispatchBooking: React.FC = () => {
   const handleSubmit = async (data: any) => {
     try {
       setFormData(data);
-      
-      const emailData = {
-        service_type: 'Dispatch Service',
-        subject: 'Dispatch Service Booking Request',
-        shipper_info: {
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email,
-          phone: data.phone
-        },
-        pickup_info: {
-          location_type: data.pickupLocationType || 'Not specified',
-          address: data.pickupAddress || 'Not specified',
-          contact_name: data.pickupContactName || 'Not specified',
-          contact_phone: data.pickupContactPhone || 'Not specified'
-        },
-        delivery_info: {
-          location_type: data.deliveryLocationType || 'Not specified',
-          address: data.deliveryAddress || 'Not specified'
-        },
-        vehicle_info: {
-          year: data.vehicleYear,
-          make: data.vehicleMake,
-          model: data.vehicleModel,
-          vin: data.vinNumber
-        },
-        additional_info: {
-          lot_number: data.lotNumber || 'Not specified',
-          is_runner: data.isRunner || false,
-          car_title_ready: data.isCarTitleReady || false
-        }
-      };
-
-      await sendEmail('template_qogh09d', emailData);
-      
       const calculatedAmount = 1000;
       setAmount(calculatedAmount);
 
       if (isBooking) {
         setShowPayment(true);
       } else {
+        // For quotes, send emails immediately
+        await sendEmailToAdmin({ ...data, service_type: 'Dispatch Service Quote' });
+        await sendCustomerConfirmationEmail({ ...data, service_type: 'Dispatch Service Quote' });
         alert('Quote request sent successfully! We will contact you shortly.');
         navigate('/');
       }
@@ -79,13 +47,17 @@ const DispatchBooking: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
-      await sendEmail('template_ene1r37', {
-        to_name: `${formData.firstName} ${formData.lastName}`,
-        service_type: 'Dispatch Service',
-        booking_details: `From ${formData.pickupAddress} to ${formData.deliveryAddress}`,
-        to_email: formData.email
+      // Send emails after payment is successful
+      await sendEmailToAdmin({
+        ...formData,
+        service_type: 'Dispatch Service Booking',
+        payment_status: 'completed'
       });
-
+      await sendCustomerConfirmationEmail({
+        ...formData,
+        service_type: 'Dispatch Service Booking',
+        payment_status: 'completed'
+      });
       alert('Booking confirmed! Check your email for details.');
       navigate('/');
     } catch (error) {

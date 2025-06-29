@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import { useForm } from 'react-hook-form';
 import { ArrowRight, CheckCircle, Truck, Ship, Calendar, MapPin, Mail, Phone, Building } from 'lucide-react';
-import PayPalPayment from '../components/payment/PayPalPayment';
 import { submitQuoteRequest, verifyQuoteReference } from '../lib/zoho';
+import PayPalPayment from '../components/payment/PayPalPayment';
 
 interface BookingFormData {
   firstName: string;
@@ -47,8 +47,9 @@ const Booking: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [quoteReference, setQuoteReference] = useState<string | null>(null);
   const [quoteDetails, setQuoteDetails] = useState<any>(null);
-  
-  const { register, handleSubmit, formState: { errors }, watch, trigger } = useForm<BookingFormData>();
+
+  const { register, formState: { errors }, watch, trigger, handleSubmit } = useForm<BookingFormData>();
+  const navigate = useNavigate();
   
   useEffect(() => {
     document.title = 'Book a Service - Jaykash Integrated Services LLC';
@@ -72,7 +73,14 @@ const Booking: React.FC = () => {
     threshold: 0.1,
   });
 
-  // ... (rest of the component implementation remains exactly the same)
+  const onSubmit = (data: BookingFormData) => {
+    setBookingDetails(data);
+    setIsSubmitted(true);
+
+    // Save to local storage and navigate to payment
+    localStorage.setItem('bookingFormData', JSON.stringify(data));
+    navigate('/payment');
+  };
 
   return (
     <div>
@@ -101,7 +109,10 @@ const Booking: React.FC = () => {
             </div>
           )}
           
-          {/* Rest of the JSX remains exactly the same */}
+          <form onSubmit={handleSubmit(onSubmit)}>
+            {/* ...your form fields... */}
+            <button type="submit">Book & Pay</button>
+          </form>
         </div>
       </section>
     </div>

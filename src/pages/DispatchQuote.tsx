@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
-import { sendEmail, sendCustomerConfirmationEmail } from '../lib/emailjs';
+import { sendEmailToAdmin, sendCustomerConfirmationEmail } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
 
 const DispatchQuote: React.FC = () => {
@@ -52,10 +52,10 @@ const DispatchQuote: React.FC = () => {
       };
 
       // The existing emailData object already has the right structure
-      await sendEmail('template_qogh09d', emailData);
+      await sendEmailToAdmin(emailData);
       
       // Send confirmation email to customer using the same data structure
-      await sendCustomerConfirmationEmail('template_ene1r37', emailData);
+      await sendCustomerConfirmationEmail(emailData);
       
       setIsSubmitted(true);
       window.scrollTo(0, 0);

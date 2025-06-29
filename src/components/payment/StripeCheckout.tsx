@@ -64,21 +64,21 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
 
 interface StripeCheckoutProps {
   clientSecret: string;
-  onSuccess: () => void;
-  onError: (error: string) => void;
+  onSuccess: () => void | Promise<void>;
+  onError: (err: string) => void;
 }
 
-const StripeCheckout: React.FC<StripeCheckoutProps> = ({
-  clientSecret,
-  onSuccess,
-  onError,
-}) => {
+const StripeCheckout: React.FC<StripeCheckoutProps> = ({ clientSecret, onSuccess, onError }) => {
   const options = {
     clientSecret,
     appearance: {
       theme: 'stripe' as const,
     },
   };
+
+  if (!clientSecret) {
+    return <div>Loading payment form...</div>;
+  }
 
   return (
     <Elements stripe={stripePromise} options={options}>

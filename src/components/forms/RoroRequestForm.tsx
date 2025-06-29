@@ -35,10 +35,11 @@ interface RoroRequestFormData {
 }
 
 interface Props {
-  onSubmit: (data: RoroRequestFormData) => void;
+  onSubmit: (data: any) => Promise<void>;
+  loading?: boolean;
 }
 
-const RoroRequestForm: React.FC<Props> = ({ onSubmit }) => {
+const RoroRequestForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const location = useLocation();
   const isBooking = location.pathname.includes('/book-now');
   const { register, handleSubmit, formState: { errors } } = useForm<RoroRequestFormData>();
@@ -366,8 +367,8 @@ const RoroRequestForm: React.FC<Props> = ({ onSubmit }) => {
         </div>
       </div>
 
-      <button type="submit" className="btn btn-primary w-full">
-        {isBooking ? 'Book Now' : 'Request Quote'}
+      <button type="submit" disabled={loading}>
+        {loading ? 'Submitting...' : 'Submit'}
       </button>
     </form>
   );
