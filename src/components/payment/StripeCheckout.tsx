@@ -6,6 +6,7 @@ import {
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -17,6 +18,8 @@ interface CheckoutFormProps {
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +42,14 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
       if (error) {
         onError(error.message || 'An error occurred during payment');
       } else {
-        onSuccess();
+        // Payment successful - redirect to success page with form data
+        const formData = location.state?.formData;
+        if (formData) {
+          navigate('/payment/success', { state: { formData } });
+        } else {
+          // Fallback to success callback
+          onSuccess();
+        }
       }
     } catch (err) {
       onError('Payment failed. Please try again.');
@@ -64,7 +74,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
 
 interface StripeCheckoutProps {
   clientSecret: string;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
   onError: (error: string) => void;
 }
 
