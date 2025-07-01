@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { carriers, originPorts } from '../data/services';
+import { sendEmailToAdmin } from '../lib/emailjs';
 
 interface QuoteFormData {
   firstName: string;
@@ -80,9 +81,9 @@ const RequestQuote: React.FC = () => {
   const onSubmit = async (data: QuoteFormData) => {
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
-      await sendEmail('template_qogh09d', {
+      const emailData = {
         to_name: 'Admin',
         from_name: `${data.firstName} ${data.lastName}`,
         from_email: data.email,
@@ -107,13 +108,14 @@ const RequestQuote: React.FC = () => {
           -------------------
           ${data.specialRequirements || 'None specified'}
         `
-      });
+      };
+
+      await sendEmailToAdmin(emailData);
 
       setIsSubmitted(true);
       reset();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      console.error('Error submitting quote:', err);
       setError('Failed to submit quote request. Please try again or contact us directly.');
     } finally {
       setIsSubmitting(false);

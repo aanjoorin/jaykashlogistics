@@ -17,6 +17,7 @@ import OceanFreightBooking from './pages/OceanFreightBooking';
 import InlandFreightBooking from './pages/InlandFreightBooking';
 import DispatchBooking from './pages/DispatchBooking';
 import Payment from './pages/Payment';
+import PaymentSuccess from './pages/PaymentSuccess';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<Faq />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

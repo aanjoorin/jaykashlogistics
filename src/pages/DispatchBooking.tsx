@@ -27,46 +27,43 @@ const DispatchBooking: React.FC = () => {
   const handleSubmit = async (data: any) => {
     try {
       setFormData(data);
-      
-      const emailData = {
-        service_type: 'Dispatch Service',
-        subject: 'Dispatch Service Booking Request',
-        shipper_info: {
-          name: `${data.firstName} ${data.lastName}`,
-          email: data.email,
-          phone: data.phone
-        },
-        pickup_info: {
-          location_type: data.pickupLocationType || 'Not specified',
-          address: data.pickupAddress || 'Not specified',
-          contact_name: data.pickupContactName || 'Not specified',
-          contact_phone: data.pickupContactPhone || 'Not specified'
-        },
-        delivery_info: {
-          location_type: data.deliveryLocationType || 'Not specified',
-          address: data.deliveryAddress || 'Not specified'
-        },
-        vehicle_info: {
-          year: data.vehicleYear,
-          make: data.vehicleMake,
-          model: data.vehicleModel,
-          vin: data.vinNumber
-        },
-        additional_info: {
-          lot_number: data.lotNumber || 'Not specified',
-          is_runner: data.isRunner || false,
-          car_title_ready: data.isCarTitleReady || false
-        }
-      };
-
-      await sendEmail('template_qogh09d', emailData);
-      
       const calculatedAmount = 1000;
       setAmount(calculatedAmount);
-
       if (isBooking) {
         setShowPayment(true);
       } else {
+        // Only send email for quotes
+        const emailData = {
+          service_type: 'Dispatch Service',
+          subject: 'Dispatch Service Quote Request',
+          shipper_info: {
+            name: `${data.firstName} ${data.lastName}`,
+            email: data.email,
+            phone: data.phone
+          },
+          pickup_info: {
+            location_type: data.pickupLocationType || 'Not specified',
+            address: data.pickupAddress || 'Not specified',
+            contact_name: data.pickupContactName || 'Not specified',
+            contact_phone: data.pickupContactPhone || 'Not specified'
+          },
+          delivery_info: {
+            location_type: data.deliveryLocationType || 'Not specified',
+            address: data.deliveryAddress || 'Not specified'
+          },
+          vehicle_info: {
+            year: data.vehicleYear,
+            make: data.vehicleMake,
+            model: data.vehicleModel,
+            vin: data.vinNumber
+          },
+          additional_info: {
+            lot_number: data.lotNumber || 'Not specified',
+            is_runner: data.isRunner || false,
+            car_title_ready: data.isCarTitleReady || false
+          }
+        };
+        await sendEmail('template_qogh09d', emailData);
         alert('Quote request sent successfully! We will contact you shortly.');
         navigate('/');
       }
