@@ -1,60 +1,73 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
-import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail } from '../lib/emailjs';
-import { navigateToPayment, generateBookingReference, PaymentData } from '../lib/payment';
+import PaymentPage from '../components/payment/PaymentPage';
+import { sendQuoteRequestEmails } from '../lib/emailjs';
+import { generateBookingReference, navigateToPayment, PaymentData } from '../lib/payment';
 
 const OceanFreightBooking: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const isBooking = location.pathname.includes('/book-now');
+  const [searchParams] = useSearchParams();
+  const [formData, setFormData] = useState<any>(null);
+  const [amount, setAmount] = useState<number>(0);
+  const [showPayment, setShowPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBooking] = useState(true);
 
   useEffect(() => {
-    document.title = isBooking ? 'Ocean Freight Booking - Jaykash' : 'Ocean Freight Quote - Jaykash';
+    document.title = 'Ocean Freight Booking - Jaykash';
     window.scrollTo(0, 0);
-  }, [isBooking]);
-
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  }, []);
 
   const handleSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      // DO NOT send email here!
-      // Only prepare payment and redirect to payment page
       if (isBooking) {
         // Generate a unique booking reference
         const bookingRef = generateBookingReference('OCEAN');
         // Calculate payment amount (you can adjust this based on your pricing logic)
         const baseAmount = 1250; // Base service fee
-        // Prepare payment data
-        const paymentData: PaymentData = {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          pickupAddress: data.pickupAddress,
-          deliveryAddress: data.deliveryAddress,
-          vehicleMake: data.vehicleMake,
-          vehicleModel: data.vehicleModel,
-          vehicleYear: data.vehicleYear,
-          serviceType: 'Ocean Freight Booking',
-          amount: baseAmount,
-          bookingReference: bookingRef,
-        };
-        // Navigate to payment page with form data
-        navigateToPayment(navigate, paymentData, 'state');
+        setFormData(data);
+        setAmount(baseAmount);
+        setShowPayment(true);
       } else {
         // For quotes, show success message and send email
-        await sendEmail('ocean_freight_template', {
-          ...data,
-          service_type: 'Ocean Freight Quote'
-        });
+        const emailData = {
+          service_type: 'Ocean Freight',
+          shipper_info: {
+            name: `${data.firstName} ${data.lastName}`,
+            email: data.email,
+            phone: data.phone
+          },
+          shipline_info: {
+            loading_port: data.loadingPort,
+            discharge_port: data.dischargePort,
+            carrier: data.carrier
+          },
+          receiver_info: {
+            consignee_name: data.consigneeName,
+            consignee_address: data.consigneeAddress,
+            consignee_phone: data.consigneePhone,
+            notify_party: data.notifyParty || 'Not specified'
+          },
+          vehicle_info: {
+            year: data.vehicleYear,
+            make: data.vehicleMake,
+            model: data.vehicleModel,
+            vin: data.vinNumber,
+            category: data.vehicleCategory,
+            title_number: data.titleNumber,
+            title_state: data.titleState,
+            declared_value: data.declaredValue,
+            condition: data.vehicleCondition || 'Not specified'
+          },
+          additional_info: {
+            is_runner: false,
+            car_title_ready: data.isCarTitleReady || false
+          }
+        };
+        await sendQuoteRequestEmails(emailData);
         alert('Quote request submitted successfully! We will contact you shortly.');
         navigate('/');
       }
@@ -64,6 +77,15 @@ const OceanFreightBooking: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentSuccess = async () => {
+    alert('Booking confirmed! Check your email for confirmation details.');
+    navigate('/');
+  };
+
+  const handlePaymentError = (error: string) => {
+    alert(`Payment failed: ${error}`);
   };
 
   return (
@@ -82,14 +104,22 @@ const OceanFreightBooking: React.FC = () => {
       />
       
       <section className="section bg-white">
-        <div 
-          ref={ref}
-          className={`container-custom transition-all duration-500 ${
-            inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
+        <div className="container-custom">
           <div className="max-w-4xl mx-auto">
-            <RoroRequestForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+            {showPayment ? (
+              <PaymentPage
+                amount={amount * 100} // Convert to cents
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                customerEmail={formData?.email}
+                customerName={`${formData?.firstName} ${formData?.lastName}`}
+                serviceType="Ocean Freight"
+                bookingReference={`OCEAN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}
+                bookingDetails={`From ${formData?.loadingPort} to ${formData?.dischargePort}`}
+              />
+            ) : (
+              <RoroRequestForm onSubmit={handleSubmit} />
+            )}
           </div>
         </div>
       </section>

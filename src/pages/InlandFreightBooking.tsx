@@ -1,43 +1,34 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
-import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { sendEmail } from '../lib/emailjs';
-import { createPaymentIntent } from '../lib/stripe';
-import StripeCheckout from '../components/payment/StripeCheckout';
+import PaymentPage from '../components/payment/PaymentPage';
+import { sendQuoteRequestEmails } from '../lib/emailjs';
 
 const InlandFreightBooking: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const isBooking = location.pathname.includes('/book-now');
-  const [showPayment, setShowPayment] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string>('');
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState<any>(null);
+  const [amount, setAmount] = useState<number>(0);
+  const [showPayment, setShowPayment] = useState(false);
+  const [isBooking] = useState(true);
 
   useEffect(() => {
-    document.title = isBooking ? 'Inland Freight Booking - Jaykash' : 'Inland Freight Quote - Jaykash';
+    document.title = 'Inland Freight Booking - Jaykash';
     window.scrollTo(0, 0);
-  }, [isBooking]);
-
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  }, []);
 
   const handleSubmit = async (data: any) => {
     try {
       setFormData(data);
       if (isBooking) {
-        const bookingRef = `INL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const secret = await createPaymentIntent(1000, bookingRef, data.email);
-        setClientSecret(secret);
+        const calculatedAmount = 1000;
+        setAmount(calculatedAmount);
         setShowPayment(true);
       } else {
         // Only send email for quotes
         const emailData = {
           service_type: 'Inland Freight',
-          subject: 'Inland Freight Quote Request',
           shipper_info: {
             name: `${data.firstName} ${data.lastName}`,
             email: data.email,
@@ -65,7 +56,7 @@ const InlandFreightBooking: React.FC = () => {
             car_title_ready: data.isCarTitleReady || false
           }
         };
-        await sendEmail('template_qogh09d', emailData);
+        await sendQuoteRequestEmails(emailData);
         alert('Quote request submitted successfully! We will contact you shortly.');
         navigate('/');
       }
@@ -76,19 +67,8 @@ const InlandFreightBooking: React.FC = () => {
   };
 
   const handlePaymentSuccess = async () => {
-    try {
-      await sendEmail('template_ene1r37', {
-        to_name: `${formData.firstName} ${formData.lastName}`,
-        service_type: 'Inland Freight',
-        booking_details: `From ${formData.pickupAddress} to ${formData.deliveryAddress}`,
-        to_email: formData.email
-      });
-      
-      alert('Booking confirmed! Check your email for confirmation details.');
-      navigate('/');
-    } catch (error) {
-      console.error('Error processing success:', error);
-    }
+    alert('Booking confirmed! Check your email for confirmation details.');
+    navigate('/');
   };
 
   const handlePaymentError = (error: string) => {
@@ -111,22 +91,19 @@ const InlandFreightBooking: React.FC = () => {
       />
       
       <section className="section bg-white">
-        <div 
-          ref={ref}
-          className={`container-custom transition-all duration-500 ${
-            inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
+        <div className="container-custom">
           <div className="max-w-4xl mx-auto">
-            {showPayment && clientSecret ? (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-semibold mb-6">Complete Payment</h2>
-                <StripeCheckout
-                  clientSecret={clientSecret}
-                  onSuccess={handlePaymentSuccess}
-                  onError={handlePaymentError}
-                />
-              </div>
+            {showPayment ? (
+              <PaymentPage
+                amount={amount * 100} // Convert to cents
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                customerEmail={formData?.email}
+                customerName={`${formData?.firstName} ${formData?.lastName}`}
+                serviceType="Inland Freight"
+                bookingReference={`INL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}
+                bookingDetails={`From ${formData?.pickupAddress} to ${formData?.deliveryAddress}`}
+              />
             ) : (
               <DispatchRequestForm onSubmit={handleSubmit} />
             )}

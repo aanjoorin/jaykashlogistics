@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
-import { sendEmail } from '../lib/emailjs';
+import { sendQuoteRequestEmails } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
 
 const InlandFreightQuote: React.FC = () => {
@@ -50,7 +50,7 @@ const InlandFreightQuote: React.FC = () => {
         }
       };
 
-      await sendEmail('template_qogh09d', emailData);
+      await sendQuoteRequestEmails(emailData);
       setIsSubmitted(true);
       window.scrollTo(0, 0);
     } catch (error) {
@@ -63,7 +63,7 @@ const InlandFreightQuote: React.FC = () => {
     <div>
       <PageHeader 
         title="Inland Freight Quote"
-        subtitle="Get a quote for domestic vehicle transport services"
+        subtitle="Get a quote for your domestic vehicle transport service"
         breadcrumbs={[{ name: "Inland Freight", path: "/request-quote/inland-freight" }]}
         backgroundImage="https://images.pexels.com/photos/2199293/pexels-photo-2199293.jpeg"
       />

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
-import { sendEmail } from '../lib/emailjs';
+import { sendQuoteRequestEmails } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
 
 const OceanFreightQuote: React.FC = () => {
@@ -22,7 +22,6 @@ const OceanFreightQuote: React.FC = () => {
     try {
       const emailData = {
         service_type: 'Ocean Freight',
-        subject: 'Quote Request - Ocean Freight',
         shipper_info: {
           name: data.firstName + ' ' + data.lastName,
           email: data.email,
@@ -56,7 +55,7 @@ const OceanFreightQuote: React.FC = () => {
         }
       };
 
-      await sendEmail('template_qogh09d', emailData);
+      await sendQuoteRequestEmails(emailData);
       setIsSubmitted(true);
       window.scrollTo(0, 0);
     } catch (error) {

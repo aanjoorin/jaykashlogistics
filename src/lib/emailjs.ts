@@ -114,3 +114,124 @@ export const sendEmailToAdmin = async (data: any) => {
   const templateId = import.meta.env.VITE_EMAILJS_DISPATCH_TEMPLATE_ID;
   return sendEmail(templateId, data);
 };
+
+// Enhanced function to send quote request emails to both admin and customer
+export const sendQuoteRequestEmails = async (quoteData: any) => {
+  try {
+    // Generate a unique quote reference
+    const quoteReference = `QT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Send notification to admin
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      {
+        to_email: import.meta.env.VITE_ADMIN_EMAIL,
+        from_name: quoteData.shipper_info.name,
+        from_email: quoteData.shipper_info.email,
+        subject: 'New Quote Request',
+        message: `
+          Quote Reference: ${quoteReference}
+
+          Customer Information:
+          Name: ${quoteData.shipper_info.name}
+          Email: ${quoteData.shipper_info.email}
+          Phone: ${quoteData.shipper_info.phone}
+
+          Service Details:
+          Service Type: ${quoteData.service_type}
+          ${quoteData.vehicle_info ? `Vehicle: ${quoteData.vehicle_info.year} ${quoteData.vehicle_info.make} ${quoteData.vehicle_info.model}` : ''}
+          ${quoteData.pickup_info ? `From: ${quoteData.pickup_info.address}` : ''}
+          ${quoteData.delivery_info ? `To: ${quoteData.delivery_info.address}` : ''}
+          ${quoteData.shipline_info ? `Route: ${quoteData.shipline_info.loading_port} to ${quoteData.shipline_info.discharge_port}` : ''}
+
+          Additional Information:
+          ${quoteData.additional_info ? JSON.stringify(quoteData.additional_info, null, 2) : 'No additional information'}
+        `,
+        quote_reference: quoteReference
+      },
+      import.meta.env.VITE_EMAILJS_USER_ID
+    );
+
+    // Send confirmation to customer
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_BOOKING_TEMPLATE_ID,
+      {
+        to_email: quoteData.shipper_info.email,
+        customer_name: quoteData.shipper_info.name,
+        quote_reference: quoteReference,
+        quote_details: `
+          Service Type: ${quoteData.service_type}
+          ${quoteData.vehicle_info ? `Vehicle: ${quoteData.vehicle_info.year} ${quoteData.vehicle_info.make} ${quoteData.vehicle_info.model}` : ''}
+          ${quoteData.pickup_info ? `From: ${quoteData.pickup_info.address}` : ''}
+          ${quoteData.delivery_info ? `To: ${quoteData.delivery_info.address}` : ''}
+          ${quoteData.shipline_info ? `Route: ${quoteData.shipline_info.loading_port} to ${quoteData.shipline_info.discharge_port}` : ''}
+        `,
+        message: 'Thank you for your quote request. Our team will review your information and get back to you within 24 hours with a detailed quote tailored to your needs.'
+      },
+      import.meta.env.VITE_EMAILJS_USER_ID
+    );
+
+    return { success: true, quoteReference };
+  } catch (error) {
+    console.error('Error sending quote request emails:', error);
+    throw error;
+  }
+};
+
+// Function to send payment confirmation emails
+export const sendPaymentConfirmationEmails = async (paymentData: any) => {
+  try {
+    // Send confirmation to admin
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      {
+        to_email: import.meta.env.VITE_ADMIN_EMAIL,
+        from_name: 'Payment System',
+        from_email: 'noreply@jaykash.com',
+        subject: 'Payment Received - Booking Confirmed',
+        message: `
+          Payment Confirmation:
+          
+          Customer: ${paymentData.customerName}
+          Email: ${paymentData.customerEmail}
+          Service: ${paymentData.serviceType}
+          Amount: $${paymentData.amount}
+          Payment Method: ${paymentData.paymentMethod}
+          Booking Reference: ${paymentData.bookingReference}
+          Payment Date: ${new Date().toLocaleDateString()}
+          
+          Booking Details:
+          ${paymentData.bookingDetails || 'No additional details provided'}
+        `
+      },
+      import.meta.env.VITE_EMAILJS_USER_ID
+    );
+
+    // Send confirmation to customer
+    await emailjs.send(
+      import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      import.meta.env.VITE_EMAILJS_BOOKING_TEMPLATE_ID,
+      {
+        to_email: paymentData.customerEmail,
+        customer_name: paymentData.customerName,
+        booking_reference: paymentData.bookingReference,
+        booking_details: `
+          Service: ${paymentData.serviceType}
+          Amount Paid: $${paymentData.amount}
+          Payment Method: ${paymentData.paymentMethod}
+          Payment Date: ${new Date().toLocaleDateString()}
+        `,
+        message: 'Your payment has been received and your booking is confirmed. You will receive further details about your shipment shortly.'
+      },
+      import.meta.env.VITE_EMAILJS_USER_ID
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending payment confirmation emails:', error);
+    throw error;
+  }
+};

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
-import { sendEmail } from '../lib/emailjs';
+import { sendQuoteRequestEmails } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
 
 const DispatchQuote: React.FC = () => {
@@ -22,7 +22,6 @@ const DispatchQuote: React.FC = () => {
     try {
       const emailData = {
         service_type: 'Dispatch Service',
-        subject: 'Quote Request - Dispatch Service',
         shipper_info: {
           name: data.shipperName,
           email: data.shipperEmail,
@@ -51,7 +50,7 @@ const DispatchQuote: React.FC = () => {
         }
       };
 
-      await sendEmail('template_qogh09d', emailData);
+      await sendQuoteRequestEmails(emailData);
       setIsSubmitted(true);
       window.scrollTo(0, 0);
     } catch (error) {
@@ -64,7 +63,7 @@ const DispatchQuote: React.FC = () => {
     <div>
       <PageHeader 
         title="Dispatch Service Quote"
-        subtitle="Get a quote for our professional dispatch services"
+        subtitle="Get a quote for our professional dispatch service"
         breadcrumbs={[{ name: "Dispatch Service", path: "/request-quote/dispatch" }]}
         backgroundImage="https://images.pexels.com/photos/2244746/pexels-photo-2244746.jpeg"
       />
