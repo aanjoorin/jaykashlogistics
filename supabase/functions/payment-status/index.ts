@@ -1,7 +1,7 @@
-import { serve } from 'std/http/server';
-import Stripe from 'stripe';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import Stripe from 'npm:stripe@14';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
 });
 

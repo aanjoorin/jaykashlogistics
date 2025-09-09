@@ -4,7 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { carriers, originPorts } from '../data/services';
-import { sendEmailToAdmin } from '../lib/emailjs';
+import { supabase } from '../lib/supabase';
 
 interface QuoteFormData {
   firstName: string;
@@ -37,17 +37,45 @@ interface QuoteFormData {
 const RequestQuote: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
   
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm<QuoteFormData>();
+  
+  useEffect(() => {
+    // TODO: Remove this before deploying
+    if (import.meta.env.DEV) {
+      reset({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'adeadecodes@gmail.com',
+        phone: '123-456-7890',
+        company: 'Doe Inc.',
+        serviceType: 'ocean',
+        origin: 'New York, NY',
+        destination: 'Lagos, Nigeria',
+        weight: '3500',
+        specialRequirements: 'Needs to be handled with care.',
+        vehicleYear: '2022',
+        vehicleMake: 'Toyota',
+        vehicleModel: 'Camry',
+        vinNumber: '123456789ABCDEFGH',
+        buyerName: 'Jane Smith',
+        buyerPhone: '098-765-4321',
+        lotNumber: 'A123',
+        isCarTitleReady: true,
+        pickupLocationType: 'residence',
+        deliveryLocationType: 'port',
+        shipline: 'Grimaldi',
+        originPort: 'New York, NY',
+      });
+    }
+  }, [reset]);
   
   const serviceType = watch('serviceType');
   const weight = watch('weight');
   const origin = watch('origin');
   const destination = watch('destination');
-  const pickupLocationType = watch('pickupLocationType');
-  const deliveryLocationType = watch('deliveryLocationType');
   
   useEffect(() => {
     document.title = 'Request a Quote - Jaykash Integrated Services LLC';
@@ -78,45 +106,28 @@ const RequestQuote: React.FC = () => {
     threshold: 0.1,
   });
 
-  const onSubmit = async (data: QuoteFormData) => {
+  const onSubmit = async (quoteData: QuoteFormData) => {
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const emailData = {
-        to_name: 'Admin',
-        from_name: `${data.firstName} ${data.lastName}`,
-        from_email: data.email,
-        subject: 'New Quote Request',
-        message: `
-          Quote Request Details:
-          ---------------------
-          Service: ${data.serviceType}
-          Vehicle: ${data.vehicleYear} ${data.vehicleMake} ${data.vehicleModel}
-          VIN: ${data.vinNumber}
-          From: ${data.origin}
-          To: ${data.destination}
-          
-          Customer Details:
-          ----------------
-          Name: ${data.firstName} ${data.lastName}
-          Email: ${data.email}
-          Phone: ${data.phone}
-          Company: ${data.company || 'N/A'}
-          
-          Special Requirements:
-          -------------------
-          ${data.specialRequirements || 'None specified'}
-        `
-      };
+      const { data, error } = await supabase.functions.invoke('handle-quote', {
+        body: {
+          action: 'submit_quote',
+          quoteData,
+        },
+      });
 
-      await sendEmailToAdmin(emailData);
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+
 
       setIsSubmitted(true);
       reset();
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
+    } catch (err: any) {
       setError('Failed to submit quote request. Please try again or contact us directly.');
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }

@@ -108,9 +108,3 @@ export const sendEmail = async (templateId: string, data: any) => {
     throw error;
   }
 };
-
-export const sendEmailToAdmin = async (data: any) => {
-  // Use the default admin template from .env
-  const templateId = import.meta.env.VITE_EMAILJS_DISPATCH_TEMPLATE_ID;
-  return sendEmail(templateId, data);
-};

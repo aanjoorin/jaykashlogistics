@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import PageHeader from '../../components/common/PageHeader';
-import { Search, RefreshCw, Send } from 'lucide-react';
+import { Search, RefreshCw, Send, Eye, DollarSign } from 'lucide-react';
 
 interface Quote {
   id: string;
@@ -16,14 +16,18 @@ interface Quote {
   pickup_location: string;
   delivery_location: string;
   amount: number | null;
+  user: {
+    email: string;
+  };
 }
 
 const Quotes: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
-  const [quoteAmount, setQuoteAmount] = useState('');
+  const [amount, setAmount] = useState('');
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -47,7 +51,7 @@ const Quotes: React.FC = () => {
   };
 
   const handleSendQuote = async () => {
-    if (!selectedQuote || !quoteAmount) return;
+    if (!selectedQuote || !amount) return;
 
     setUpdating(true);
     try {
@@ -61,7 +65,7 @@ const Quotes: React.FC = () => {
           action: 'update_quote',
           quoteData: {
             id: selectedQuote.id,
-            amount: parseFloat(quoteAmount)
+            amount: parseFloat(amount)
           }
         })
       });
@@ -69,7 +73,7 @@ const Quotes: React.FC = () => {
       if (!response.ok) throw new Error('Failed to send quote');
 
       setSelectedQuote(null);
-      setQuoteAmount('');
+      setAmount('');
       fetchQuotes();
     } catch (error) {
       console.error('Error sending quote:', error);
@@ -77,6 +81,40 @@ const Quotes: React.FC = () => {
       setUpdating(false);
     }
   };
+
+  const handleSetAmountClick = (quote: Quote) => {
+    setSelectedQuote(quote);
+    setAmount(quote.amount?.toString() || '');
+  };
+
+  const handleModalClose = () => {
+    setSelectedQuote(null);
+    setAmount('');
+  };
+
+  const handleAmountSubmit = async () => {
+    if (!selectedQuote) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('handle-quote', {
+        body: {
+          action: 'update_quote',
+          quoteData: {
+            id: selectedQuote.id,
+            amount: parseFloat(amount),
+          },
+        },
+      });
+
+      if (error) throw error;
+      
+      fetchQuotes();
+      handleModalClose();
+    } catch (error) {
+      console.error('Error updating quote:', error);
+    }
+  };
+
 
   const filteredQuotes = quotes.filter(quote => {
     return (
@@ -200,35 +238,41 @@ const Quotes: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Send Quote Modal */}
+    
       {selectedQuote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold mb-4">Send Quote</h3>
-            <div className="mb-4">
-              <label className="label">Quote Amount ($)</label>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl">
+            <h3 className="text-lg font-medium leading-6 text-gray-900">
+              Set Quote Amount for {selectedQuote.id}
+            </h3>
+            <div className="mt-4">
+              <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                Amount ($)
+              </label>
               <input
                 type="number"
-                className="input-field"
-                value={quoteAmount}
-                onChange={(e) => setQuoteAmount(e.target.value)}
-                placeholder="Enter quote amount"
+                name="amount"
+                id="amount"
+                className="input-field mt-1"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
               />
             </div>
-            <div className="flex justify-end gap-4">
+            <div className="mt-6 flex justify-end gap-4">
               <button
+                type="button"
                 className="btn btn-outline"
-                onClick={() => setSelectedQuote(null)}
+                onClick={handleModalClose}
               >
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
-                onClick={handleSendQuote}
-                disabled={updating || !quoteAmount}
+                onClick={handleAmountSubmit}
               >
-                {updating ? 'Sending...' : 'Send Quote'}
+                Save and Send
               </button>
             </div>
           </div>

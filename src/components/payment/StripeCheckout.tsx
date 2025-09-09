@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -6,21 +6,17 @@ import {
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase'; // Corrected import path
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-interface CheckoutFormProps {
-  onSuccess: () => void;
-  onError: (error: string) => void;
-}
-
-const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
+const CheckoutForm: React.FC = () => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
-  const location = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,31 +26,20 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
     }
 
     setIsProcessing(true);
+    setError(null);
 
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/payment/success`,
-        },
-      });
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/payment/success`,
+      },
+    });
 
-      if (error) {
-        onError(error.message || 'An error occurred during payment');
-      } else {
-        // Payment successful - redirect to success page with form data
-        const formData = location.state?.formData;
-        if (formData) {
-          navigate('/payment/success', { state: { formData } });
-        } else {
-          // Fallback to success callback
-          onSuccess();
-        }
-      }
-    } catch (err) {
-      onError('Payment failed. Please try again.');
-    } finally {
+    if (error) {
+      setError(error.message || 'An unexpected error occurred.');
       setIsProcessing(false);
+    } else {
+      navigate('/payment/success');
     }
   };
 
@@ -68,21 +53,45 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
       >
         {isProcessing ? 'Processing...' : 'Pay Now'}
       </button>
+      {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
     </form>
   );
 };
 
 interface StripeCheckoutProps {
-  clientSecret: string;
-  onSuccess: () => void | Promise<void>;
-  onError: (error: string) => void;
+  amount: number;
+  quoteId: string;
 }
 
-const StripeCheckout: React.FC<StripeCheckoutProps> = ({
-  clientSecret,
-  onSuccess,
-  onError,
-}) => {
+const StripeCheckout: React.FC<StripeCheckoutProps> = ({ amount, quoteId }) => {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  useEffect(() => {
+    const createPaymentIntent = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+          body: { 
+            amount: Math.round(amount * 100), // Stripe expects amount in cents
+            booking_reference: quoteId 
+          },
+        });
+
+        if (error) throw new Error(error.message);
+        
+        setClientSecret(data.clientSecret);
+
+      } catch (err: any) {
+        console.error('Error creating payment intent:', err);
+      }
+    };
+
+    createPaymentIntent();
+  }, [amount, quoteId]);
+
+  if (!clientSecret) {
+    return <div>Loading payment form...</div>;
+  }
+  
   const options = {
     clientSecret,
     appearance: {
@@ -92,7 +101,7 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <CheckoutForm onSuccess={onSuccess} onError={onError} />
+      <CheckoutForm />
     </Elements>
   );
 };

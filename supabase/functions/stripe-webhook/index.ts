@@ -1,18 +1,9 @@
-import { serve } from 'npm:std/http/server';
-import Stripe from 'npm:stripe@14.14.0';
-import emailjs from 'npm:@emailjs/browser@4.3.3';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import Stripe from 'npm:stripe@14';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import emailjs from 'npm:@emailjs/nodejs';
 
-declare global {
-  interface Window {
-    Deno: {
-      env: {
-        get(key: string): string | undefined;
-      };
-    };
-  }
-}
-
-const stripe = new Stripe(window.Deno.env.get('STRIPE_SECRET_KEY') || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
 });
 
@@ -33,49 +24,73 @@ serve(async (req) => {
     }
 
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(
+    const event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
-      window.Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    emailjs.init({
+        publicKey: process.env.EMAILJS_PUBLIC_KEY!,
+        privateKey: process.env.EMAILJS_PRIVATE_KEY!,
+    });
 
     switch (event.type) {
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object;
+        const quoteId = paymentIntent.metadata.booking_reference;
+
+        if (!quoteId) {
+          throw new Error('Booking reference not found in payment intent metadata.');
+        }
+
+        // Update quote status to 'confirmed'
+        const { data: updatedQuote, error } = await supabase
+          .from('quotes')
+          .update({ status: 'confirmed' })
+          .eq('id', quoteId)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(`Failed to update quote status: ${error.message}`);
+        }
         
-        // Send confirmation email
+        // Send confirmation email to customer
         await emailjs.send(
-          window.Deno.env.get('VITE_EMAILJS_SERVICE_ID') || '',
-          window.Deno.env.get('VITE_EMAILJS_BOOKING_TEMPLATE_ID') || '',
-          {
-            to_email: paymentIntent.receipt_email,
-            payment_id: paymentIntent.id,
-            amount: (paymentIntent.amount / 100).toFixed(2),
-            currency: paymentIntent.currency.toUpperCase(),
-            booking_reference: paymentIntent.metadata.booking_reference
-          },
-          {
-            publicKey: window.Deno.env.get('VITE_EMAILJS_PUBLIC_KEY') || '',
-          }
+            process.env.EMAILJS_SERVICE_ID!,
+            process.env.EMAILJS_BOOKING_TEMPLATE_ID!, // Assuming this is the customer confirmation template
+            {
+              to_email: updatedQuote.customer_email,
+              payment_id: paymentIntent.id,
+              amount: (paymentIntent.amount / 100).toFixed(2),
+              currency: paymentIntent.currency.toUpperCase(),
+              booking_reference: updatedQuote.reference,
+              subject: '[Payment Successful] New Booking Confirmation'
+            }
         );
+          
+        // Send notification email to admin
+        await emailjs.send(
+            process.env.EMAILJS_SERVICE_ID!,
+            process.env.EMAILJS_ADMIN_BOOKING_TEMPLATE_ID!, // A new template for admin notifications
+            {
+              booking_reference: updatedQuote.reference,
+              customer_email: updatedQuote.customer_email,
+              amount: (paymentIntent.amount / 100).toFixed(2),
+              subject: '[Payment Successful] New Booking Confirmation'
+            }
+        );
+
         break;
 
       case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object;
-        
-        // Send failure notification
-        await emailjs.send(
-          window.Deno.env.get('VITE_EMAILJS_SERVICE_ID') || '',
-          window.Deno.env.get('VITE_EMAILJS_TEMPLATE_ID') || '',
-          {
-            to_email: failedPayment.receipt_email,
-            payment_id: failedPayment.id,
-            error_message: failedPayment.last_payment_error?.message || 'Payment failed'
-          },
-          {
-            publicKey: window.Deno.env.get('VITE_EMAILJS_PUBLIC_KEY') || '',
-          }
-        );
+        // Handle failed payment if needed
         break;
     }
 
@@ -83,7 +98,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     });

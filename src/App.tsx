@@ -13,12 +13,14 @@ import RequestForms from './pages/RequestForms';
 import Testimonials from './pages/Testimonials';
 import Contact from './pages/Contact';
 import Faq from './pages/Faq';
-import OceanFreightBooking from './pages/OceanFreightBooking';
-import InlandFreightBooking from './pages/InlandFreightBooking';
-import DispatchBooking from './pages/DispatchBooking';
 import Payment from './pages/Payment';
 import PaymentSuccess from './pages/PaymentSuccess';
+import Booking from './pages/Booking';
 import NotFound from './pages/NotFound';
+import Admin from './pages/Admin';
+import AdminQuotes from './pages/Admin/Quotes';
+import Login from './pages/Login';
+import ProtectedRoute from './components/common/ProtectedRoute';
 
 function App() {
   return (
@@ -34,15 +36,21 @@ function App() {
             <Route path="/request-quote/ocean-freight" element={<OceanFreightQuote />} />
             <Route path="/request-quote/inland-freight" element={<InlandFreightQuote />} />
             <Route path="/request-quote/dispatch" element={<DispatchQuote />} />
-            <Route path="/book-now/ocean-freight" element={<OceanFreightBooking />} />
-            <Route path="/book-now/inland-freight" element={<InlandFreightBooking />} />
-            <Route path="/book-now/dispatch" element={<DispatchBooking />} />
+            <Route path="/book-now/:quoteRef" element={<Booking />} />
             <Route path="/request-forms" element={<RequestForms />} />
             <Route path="/testimonials" element={<Testimonials />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<Faq />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/login" element={<Login />} />
+
+            {/* Protected Admin Routes */}
+            <Route path="/admin" element={<ProtectedRoute />}>
+              <Route path="dashboard" element={<Admin />} />
+              <Route path="quotes" element={<AdminQuotes />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

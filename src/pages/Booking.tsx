@@ -1,109 +1,90 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import PageHeader from '../components/common/PageHeader';
-import { useInView } from 'react-intersection-observer';
-import { useForm } from 'react-hook-form';
-import { ArrowRight, CheckCircle, Truck, Ship, Calendar, MapPin, Mail, Phone, Building } from 'lucide-react';
-import PayPalPayment from '../components/payment/PayPalPayment';
-import { submitQuoteRequest, verifyQuoteReference } from '../lib/zoho';
+import { useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import StripeCheckout from '../components/payment/StripeCheckout'; // Assuming this component exists
 
-interface BookingFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  company: string;
-  serviceType: string;
-  cargoType: string;
-  origin: string;
-  destination: string;
-  weight: string;
-  dimensions: string;
-  pickupDate: string;
-  deliveryDate: string;
-  specialRequirements: string;
-  expectedShipDate: string;
-  vehicleType: string;
-  vehicleCondition: string;
-  insuranceRequired: boolean;
-  customsClearance: boolean;
-  vehicleYear: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vinNumber: string;
-  buyerName: string;
-  buyerPhone: string;
-  lotNumber: string;
-  isCarTitleReady: boolean;
-  shipline: string;
-  originPort: string;
+interface Quote {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  amount: number;
+  service_type: string;
+  // Add other quote fields as necessary
 }
 
 const Booking: React.FC = () => {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState<Partial<BookingFormData>>({});
-  const [showPayPal, setShowPayPal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'invoice' | 'paypal'>('paypal');
-  const [currentStep, setCurrentStep] = useState(1);
-  const [quoteReference, setQuoteReference] = useState<string | null>(null);
-  const [quoteDetails, setQuoteDetails] = useState<any>(null);
-  
-  const { register, handleSubmit, formState: { errors }, watch, trigger } = useForm<BookingFormData>();
-  
+  const { quoteRef } = useParams<{ quoteRef: string }>();
+
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    document.title = 'Book a Service - Jaykash Integrated Services LLC';
-    window.scrollTo(0, 0);
-
-    // Get quote reference from URL if present
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    if (ref) {
-      setQuoteReference(ref);
-      verifyQuoteReference(ref).then(quote => {
-        if (quote.valid) {
-          setQuoteDetails(quote.details);
-        }
-      });
+    if (!quoteRef) {
+      setError('Quote reference is missing.');
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+    const fetchQuote = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('*')
+          .eq('reference', quoteRef)
+          .single();
 
-  // ... (rest of the component implementation remains exactly the same)
+        if (error) throw error;
+        if (!data) throw new Error('Quote not found.');
+        
+        setQuote(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuote();
+  }, [quoteRef]);
+
+  if (loading) {
+    return <div className="container-custom py-12">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="container-custom py-12 text-red-500">Error: {error}</div>;
+  }
+
+  if (!quote) {
+    return <div className="container-custom py-12">Quote not found.</div>;
+  }
+
+  if (quote.status === 'confirmed') {
+    return (
+      <div className="container-custom py-12 text-center">
+        <h1 className="text-3xl font-bold mb-4 text-green-600">Payment Successful!</h1>
+        <p className="text-lg">Your booking with reference <strong>{quote.reference}</strong> is confirmed.</p>
+        <p>A confirmation email has been sent to {quote.customer_email}.</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <PageHeader 
-        title="Book a Service" 
-        subtitle="Book your freight service online in just a few simple steps."
-        breadcrumbs={[{ name: "Book a Service", path: "/booking" }]}
-        backgroundImage="https://images.pexels.com/photos/1554646/pexels-photo-1554646.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-      />
-      
-      <section className="section bg-white">
-        <div 
-          ref={ref}
-          className={`container-custom transition-all duration-500 ${
-            inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          {!quoteReference && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-yellow-800">
-                Please request a quote first to receive pricing for your shipment.
-                <Link to="/request-quote" className="ml-2 text-primary hover:text-accent">
-                  Request Quote
-                </Link>
-              </p>
-            </div>
-          )}
-          
-          {/* Rest of the JSX remains exactly the same */}
+    <div className="container-custom py-12">
+      <h1 className="text-3xl font-bold mb-6">Booking for {quote.service_type}</h1>
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Quote Details</h2>
+        <p><strong>Reference:</strong> {quoteRef}</p>
+        <p><strong>Name:</strong> {quote.customer_name}</p>
+        <p><strong>Email:</strong> {quote.customer_email}</p>
+        <p className="text-2xl font-bold mt-4">Amount: ${quote.amount}</p>
+        
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4">Payment</h2>
+          <StripeCheckout amount={quote.amount} quoteId={quote.id} />
         </div>
-      </section>
+      </div>
     </div>
   );
 };
