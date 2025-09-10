@@ -42,36 +42,6 @@ const RequestQuote: React.FC = () => {
   
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm<QuoteFormData>();
   
-  useEffect(() => {
-    // TODO: Remove this before deploying
-    if (import.meta.env.DEV) {
-      reset({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'adeadecodes@gmail.com',
-        phone: '123-456-7890',
-        company: 'Doe Inc.',
-        serviceType: 'ocean',
-        origin: 'New York, NY',
-        destination: 'Lagos, Nigeria',
-        weight: '3500',
-        specialRequirements: 'Needs to be handled with care.',
-        vehicleYear: '2022',
-        vehicleMake: 'Toyota',
-        vehicleModel: 'Camry',
-        vinNumber: '123456789ABCDEFGH',
-        buyerName: 'Jane Smith',
-        buyerPhone: '098-765-4321',
-        lotNumber: 'A123',
-        isCarTitleReady: true,
-        pickupLocationType: 'residence',
-        deliveryLocationType: 'port',
-        shipline: 'Grimaldi',
-        originPort: 'New York, NY',
-      });
-    }
-  }, [reset]);
-  
   const serviceType = watch('serviceType');
   const weight = watch('weight');
   const origin = watch('origin');
