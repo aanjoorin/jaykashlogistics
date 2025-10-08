@@ -1,6 +1,6 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { User, Phone, Mail, MapPin, Car, FileText } from 'lucide-react';
+import { User, Phone, Mail, Car } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { originPorts, carriers, vehicleCategories } from '../../data/services';
 
