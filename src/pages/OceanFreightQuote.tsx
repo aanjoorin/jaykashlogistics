@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import RoroRequestForm from '../components/forms/RoroRequestForm';
-import { sendEmail } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
+import { supabase } from '../lib/supabase';
 
 const OceanFreightQuote: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = 'Ocean Freight Quote - Jaykash';
@@ -19,49 +20,31 @@ const OceanFreightQuote: React.FC = () => {
   });
 
   const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
+
     try {
-      const emailData = {
-        service_type: 'Ocean Freight',
-        subject: 'Quote Request - Ocean Freight',
-        shipper_info: {
-          name: data.firstName + ' ' + data.lastName,
-          email: data.email,
-          phone: data.phone
-        },
-        shipline_info: {
-          loading_port: data.loadingPort,
-          discharge_port: data.dischargePort,
-          carrier: data.carrier
-        },
-        receiver_info: {
-          consignee_name: data.consigneeName,
-          consignee_address: data.consigneeAddress,
-          consignee_phone: data.consigneePhone,
-          notify_party: data.notifyParty || 'Not specified'
-        },
-        vehicle_info: {
-          year: data.vehicleYear,
-          make: data.vehicleMake,
-          model: data.vehicleModel,
-          vin: data.vinNumber,
-          category: data.vehicleCategory,
-          title_number: data.titleNumber,
-          title_state: data.titleState,
-          declared_value: data.declaredValue,
-          condition: data.vehicleCondition || 'Not specified'
-        },
-        additional_info: {
-          is_runner: false,
-          car_title_ready: data.isCarTitleReady || false
-        }
+      const quoteData = {
+        ...data,
+        serviceType: 'Ocean Freight',
       };
 
-      await sendEmail('template_qogh09d', emailData);
+      const { data: response, error: invokeError } = await supabase.functions.invoke('handle-quote', {
+        body: {
+          action: 'submit_quote',
+          quoteData,
+        },
+      });
+
+      if (invokeError) throw new Error(invokeError.message);
+      if (response?.error) throw new Error(response.error);
+
       setIsSubmitted(true);
-      window.scrollTo(0, 0);
-    } catch (error) {
-      console.error('Error submitting quote:', error);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: any) {
+      console.error('Error submitting quote:', err);
       alert('Failed to submit quote request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,7 +68,7 @@ const OceanFreightQuote: React.FC = () => {
             {isSubmitted ? (
               <QuoteSuccessMessage />
             ) : (
-              <RoroRequestForm onSubmit={handleSubmit} />
+              <RoroRequestForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
             )}
           </div>
         </div>

@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import { useInView } from 'react-intersection-observer';
 import DispatchRequestForm from '../components/forms/DispatchRequestForm';
-import { sendEmail } from '../lib/emailjs';
 import QuoteSuccessMessage from '../components/common/QuoteSuccessMessage';
+import { supabase } from '../lib/supabase';
 
 const InlandFreightQuote: React.FC = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = 'Inland Freight Quote - Jaykash';
@@ -19,43 +20,31 @@ const InlandFreightQuote: React.FC = () => {
   });
 
   const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
+
     try {
-      const emailData = {
-        service_type: 'Inland Freight',
-        shipper_info: {
-          name: data.shipperName,
-          email: data.shipperEmail,
-          phone: data.shipperPhone
-        },
-        pickup_info: {
-          location_type: data.pickupLocationType || 'Not specified',
-          address: data.pickupAddress || 'Not specified',
-          contact_name: data.pickupContactName || 'Not specified',
-          contact_phone: data.pickupContactPhone || 'Not specified'
-        },
-        delivery_info: {
-          location_type: data.deliveryLocationType || 'Not specified',
-          address: data.deliveryAddress || 'Not specified'
-        },
-        vehicle_info: {
-          year: data.vehicleYear,
-          make: data.vehicleMake,
-          model: data.vehicleModel,
-          vin: data.vinNumber
-        },
-        additional_info: {
-          lot_number: data.lotNumber || 'Not specified',
-          is_runner: data.isRunner || false,
-          car_title_ready: data.isCarTitleReady || false
-        }
+      const quoteData = {
+        ...data,
+        serviceType: 'Inland Freight',
       };
 
-      await sendEmail('template_qogh09d', emailData);
+      const { data: response, error: invokeError } = await supabase.functions.invoke('handle-quote', {
+        body: {
+          action: 'submit_quote',
+          quoteData,
+        },
+      });
+
+      if (invokeError) throw new Error(invokeError.message);
+      if (response?.error) throw new Error(response.error);
+
       setIsSubmitted(true);
-      window.scrollTo(0, 0);
-    } catch (error) {
-      console.error('Error submitting quote:', error);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: any) {
+      console.error('Error submitting quote:', err);
       alert('Failed to submit quote request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
